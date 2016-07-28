@@ -1,4 +1,4 @@
-//module requires
+///module requires
 var express = require('express');
 var bodyParser = require('body-parser');
 var passport = require('passport');
@@ -49,6 +49,7 @@ passport.use('local', new LocalStrategy({
   usernameField: 'username'
   },
   function(request, username, password, done){
+
     User.findOne({username: username}, function(err, user){
       if(err) {
         throw err;

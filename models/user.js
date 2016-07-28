@@ -18,23 +18,24 @@ UserSchema.pre('save', function(next) {
   if(!user.isModified('password')) {
     return next();
   }
-
-  //generate a salt
-  bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
-    if (err) {
+  bcrypt.hash(user.password, SALT_WORK_FACTOR, function(err, hash) {
+    if(err) {
       return next(err);
     }
-    //hash PW along with new salt
-    bcrypt.hash(user.password, salt, function(err, hash) {
-      if(err) {
-        return next(err);
-      }
 
-      //override the cleartext password with the hashed one
-      user.password = hash;
-      next();
-    });
+    //override the cleartext password with the hashed one
+    user.password = hash;
+    return next();
   });
+
+  //generate a salt --- NOT NEEDED, OUTDATED
+  // bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
+  //   if (err) {
+  //     return next(err);
+  //   }
+    //hash PW along with new salt
+
+  // });
 });
 
 
@@ -42,8 +43,10 @@ UserSchema.methods.comparePassword = function(candidatePassword, cb) {
   // cb(null, this.password == candidatePassword);
   bcrypt.compare(candidatePassword, this.password, function(err, isMatch) {
     if(err) {
+      console.log(err);
       return cb(err);
     }
+    console.log(isMatch);
     cb(null, isMatch);
   });
 };
