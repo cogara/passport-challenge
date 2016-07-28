@@ -1,52 +1,116 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema
+var pg = require('pg');
 var bcrypt = require('bcrypt');
 var SALT_WORK_FACTOR = 10;
 
+var config = {
+  database: 'passportchallenge',
+  port: 5432,
+  max: 10,
+  idleTimeoutMillis: 30000
+}
 
+var pool = new pg.Pool(config);
 
-var UserSchema = new Schema({
-  username: {type: String, required: true, index: {unique: true}},
-  password: {type: String, required: true},
-  admin: {type: Boolean}
-});
-
-UserSchema.pre('save', function(next) {
-  var user = this;
-
-  //only hash PW if modified or new
-  if(!user.isModified('password')) {
-    return next();
-  }
-
-  //generate a salt
-  bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
-    if (err) {
-      return next(err);
+function findByUsername(username, callback) {
+  pool.connect(function(err, client, done){
+    if(err) {
+      console.log('Connection Error:', err);
+      done();
+      return callback(err);
     }
-    //hash PW along with new salt
-    bcrypt.hash(user.password, salt, function(err, hash) {
+    client.query('SELECT * FROM users WHERE username=$1', [username], function(err, result){
       if(err) {
-        return next(err);
+        console.log('Query Error', err);
+        done();
+        return callback(err);
       }
-
-      //override the cleartext password with the hashed one
-      user.password = hash;
-      next();
+      // console.log(result.rows);
+      done();
+      return callback(null, result.rows[0])
     });
   });
-});
+}
 
-
-UserSchema.methods.comparePassword = function(candidatePassword, cb) {
-  // cb(null, this.password == candidatePassword);
-  bcrypt.compare(candidatePassword, this.password, function(err, isMatch) {
+function findById(id, callback) {
+  pool.connect(function(err, client, done){
     if(err) {
-      return cb(err);
+      console.log('Connection Error:', err);
+      done();
+      return callback(err);
     }
-    cb(null, isMatch);
+    client.query('SELECT * FROM users WHERE id=$1', [id], function(err, result){
+      if(err) {
+        console.log('Query Error', err);
+        done();
+        return callback(err);
+      }
+      // console.log(result.rows);
+      done();
+      return callback(null, result.rows[0])
+    });
   });
-};
+}
 
 
-module.exports = mongoose.model('User', UserSchema);
+
+function create(username, password, callback) {
+
+  bcrypt.hash(password, SALT_WORK_FACTOR, function(err, hash) {
+    if(err) {
+      console.log('HASH Erro: ', err);
+      return done(err);
+    }
+
+
+
+    pool.connect(function(err, client, done) {
+      if(err) {
+        console.log('Connection Error', err);
+        done();
+        return callback(err);
+      }
+      // console.log('Username', username);
+      // console.log('Password', password, hash);
+      client.query('INSERT INTO users (username, password) ' +
+                  'VALUES ($1, $2) RETURNING id, username',
+                  [username, hash],
+                  function(err, result) {
+          if(err) {
+            console.log('Create Error', err);
+            done();
+            return callback(err)
+          }
+          done();
+          return callback(null, result.rows[0]);
+      });
+    });
+  });
+}
+
+function comparePassword(username, candidatePassword, callback) {
+
+  findByUsername(username, function(err, user) {
+    if(err) {
+      done();
+      return callback(err)
+    }
+    bcrypt.compare(candidatePassword, user.password, function(err, isMatch) {
+      if(err) {
+        console.log(err);
+        return callback(err);
+      }
+      // console.log(isMatch);
+      // console.log('User in compare function', user);
+      callback(null, isMatch, user);
+    });
+  });
+}
+
+
+
+module.exports = {
+  findByUsername: findByUsername,
+  create: create,
+  findById: findById,
+  comparePassword: comparePassword
+}

@@ -8,5 +8,19 @@
     <h1>Super secret info!!!</h1>
     <p>Password: BananaSandwich</p>
     <a href="/logout">Log out</a>
+    <form action="/list" method="post">
+      <input type="submit" value="Create List"> Must create user table first.
+    </form>
+    <form action="/list/add" method="post">
+      Item : <input type="text" name="item" />
+      Qty : <input type="text" name="qty" />
+      <input type="submit" value="Add Item"> Add item to table.
+    </form>
+
+    <form action="/list" method="get">
+      <input type="submit" value="get table"> View table in awesome JSON format.
+    </form>
+
+
   </body>
 </html>

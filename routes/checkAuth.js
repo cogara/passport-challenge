@@ -6,7 +6,7 @@ router.use('/', function(request, response, next) {
     // response.redirect('/');
   }
   else {
-    console.log('Request from:', request.user.username, ', ID:', request.user._id, 'at', new Date());
+    // console.log('Request from:', request.user.username, ', ID:', request.user._id, 'at', new Date());
     next();
   }
 });
